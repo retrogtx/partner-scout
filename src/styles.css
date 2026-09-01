@@ -1,0 +1,118 @@
+@import 'tailwindcss';
+@import 'frosted-ui/styles.css';
+
+@theme {
+  --font-sans:
+    'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, monospace;
+}
+
+/*
+ * Frosted UI already flips its scales for light/dark. This layer only adds the
+ * things a Linear-style surface needs on top: a near-black canvas, hairline
+ * borders that read as 1px rather than as a box, and layered panel elevations.
+ */
+:root,
+.light,
+.light-theme {
+  --canvas: var(--gray-1);
+  --panel: #fff;
+  --panel-raised: var(--gray-2);
+  --hairline: var(--gray-a4);
+  --hairline-strong: var(--gray-a6);
+  --inset: var(--gray-2);
+}
+
+.dark,
+.dark-theme {
+  --canvas: #08090a;
+  --panel: #0c0d0f;
+  --panel-raised: #121316;
+  --hairline: rgb(255 255 255 / 7%);
+  --hairline-strong: rgb(255 255 255 / 12%);
+  --inset: #08090a;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--canvas);
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  -webkit-font-smoothing: antialiased;
+}
+
+@layer components {
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--hairline);
+    border-radius: 12px;
+  }
+
+  .panel-inset {
+    background: var(--inset);
+    border: 1px solid var(--hairline);
+    border-radius: 10px;
+  }
+
+  /* Mono uppercase micro-label — the workhorse of a dense Linear layout. */
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    line-height: 1;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--gray-a10);
+  }
+
+  .rule {
+    height: 1px;
+    background: var(--hairline);
+  }
+
+  .grid-rule {
+    border-color: var(--hairline);
+  }
+}
+
+/* Tighter, more deliberate headings than the default scale. */
+.fui-Heading {
+  letter-spacing: -0.02em;
+}
+
+/* Thin scrollbars so long briefs don't get a chunky OS gutter. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--gray-a5) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--gray-a5);
+  border-radius: 999px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

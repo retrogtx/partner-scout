@@ -1,0 +1,21 @@
+node_modules
+.DS_Store
+dist
+dist-ssr
+*.local
+.env
+.nitro
+.tanstack
+.wrangler
+.output
+.vinxi
+__unconfig*
+todos.json
+
+# Local secrets — never commit
+.dev.vars
+.dev.vars.*
+
+# Nitro build output
+.output
+.vercel
