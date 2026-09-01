@@ -30,7 +30,7 @@ run log and the run continues. Only an empty candidate set aborts.
 
 ```bash
 pnpm install
-cp .env.example .env      # add one gateway key
+cp .env.example .dev.vars  # add one gateway key
 pnpm dev
 ```
 
@@ -53,7 +53,7 @@ If both keys are set, OpenRouter wins; `SCOUT_AI_PROVIDER=gateway` forces the ot
 | `SCOUT_MODEL` | no | Defaults to `anthropic/claude-opus-5`. |
 | `WHOP_API_KEY` | for Discover | Whop dashboard → Developer → Apps → *Set up your local environment*. Without it the Discover comps step is skipped. |
 | `APP_ID` | in production | `app_…`. Checked against the iframe token's audience. |
-| `UPSTASH_REDIS_REST_URL` / `_TOKEN` | for history | Without these the store is in-memory, which on serverless means no history survives. |
+| `UPSTASH_REDIS_REST_URL` / `_TOKEN` | for history | Without these the store is in-memory, which on Workers is per-isolate, so no history survives. |
 
 ### Model choice matters more than usual
 
@@ -67,21 +67,29 @@ Note the search plugin bills separately (~$0.007/call) even on a free-tier key.
 
 ## Deploying
 
-Vercel auto-detects TanStack Start + Nitro, so there's no build command to configure:
+Cloudflare Workers, via Wrangler:
 
 ```bash
-vercel            # preview
-vercel --prod     # production
+npx wrangler login
+npx wrangler secret put OPENROUTER_API_KEY
+npx wrangler secret put SCOUT_MODEL          # and any others from the table above
+pnpm build && npx wrangler deploy
 ```
 
-Set the environment variables above in the Vercel project. Long-running stages need headroom, so
-`nitro.config.ts` sets `maxDuration` to 300s — note this goes in the Nitro config, not
-`vercel.json`, whose `functions` patterns only match the `api/` directory. 300s requires a plan
-that allows it; on Hobby the research stage will time out.
+### Why Workers and not a serverless function
 
-**Deployment Protection must be off** for the Whop iframe to load the app — an SSO redirect
-can't render inside Whop. That is safe here: every server function calls `verifyViewer()`, which
-requires a Whop-signed JWT in production, so the public surface is an empty shell.
+Workers meter **CPU time**, and waiting on `fetch()` doesn't count toward it. There's no enforced
+wall-clock limit for HTTP-triggered Workers while the client stays connected. This pipeline is
+almost entirely waiting on model APIs with negligible compute, so the constraint that bites
+elsewhere barely applies.
+
+That matters because it was a real problem: on Vercel's Hobby plan, functions are capped at 60s
+of wall-clock and the research stage was killed mid-run. The stage split below is a legacy of
+that, and is worth keeping regardless — it gives finer progress and finer resume.
+
+`wrangler.jsonc` raises `cpu_ms` well above the 30s default as belt-and-braces. That's a **paid
+plan** setting; delete the `limits` block on the free plan, where CPU is capped at 10ms per
+request (still likely enough here, since almost nothing is CPU).
 
 ### Wiring it into Whop
 
@@ -91,27 +99,32 @@ The app renders at three paths, all the same page:
 - `/dashboard/$companyId` — Whop dashboard view
 - `/experiences/$experienceId` — Whop experience view
 
-In the [developer dashboard](https://whop.com/dashboard/developer) → Hosting, point the app's
-base URL at your Vercel domain and set the dashboard path to `/dashboard/[companyId]` and the
+In the [developer dashboard](https://whop.com/dashboard/developer) → Hosting, point the app's base
+URL at your Worker domain and set the dashboard path to `/dashboard/[companyId]` and the
 experience path to `/experiences/[experienceId]`.
 
-> **Hosting trade-off.** Whop's own app hosting (`whop apps deploy`) injects the app's Whop API
-> key into `api.whop.com` requests at the platform layer, so app code never holds it. Hosting on
-> Vercel gives that up — you set `WHOP_API_KEY` yourself. Everything else, including iframe auth,
-> works the same.
+> **On auth.** While `APP_ID` is unset the deployment falls back to a shared anonymous viewer so
+> the URL works standalone — which also means anyone with the link can spend your gateway credits.
+> Setting `APP_ID` switches to strict verification of the Whop iframe token. Set it.
+
+> **Alternative: Whop's own app hosting** (`whop apps deploy`) is also Cloudflare Workers, and
+> injects the app's Whop API key into `api.whop.com` calls at the platform layer — so `WHOP_API_KEY`
+> becomes unnecessary and Discover comps work with no configuration. The trade is no public URL and
+> no cron. Switching back means restoring the `whop()` Vite plugin from `@whop/cli/vite`.
 
 ## How it's built
 
-**TanStack Start** (React 19, Vite 8) with **Nitro** targeting Vercel Functions.
+**TanStack Start** (React 19, Vite 8) on **Cloudflare Workers** via `@cloudflare/vite-plugin`.
 **Frosted UI** — Whop's Radix-based design system — for the interface. **Vercel AI SDK v7** for
 the model layer, behind a provider seam so the gateway is one env var.
 
 A few decisions worth knowing about:
 
-**The run is a step machine.** A full run is minutes of model time, which no single serverless
-request survives. `advance()` moves the report forward exactly one stage and returns it; the
-client loops until `stage === 'done'`. Every completed stage is persisted, so a run that dies
-partway offers **Resume** rather than making you pay for the earlier stages again.
+**The run is a step machine.** `advance()` moves the report forward exactly one stage and
+returns it; the client loops until `stage === 'done'`. Research is itself three stages —
+`researching` / `structuring` / `pitching`, one model call each, with partial work carried on
+`report.pending`. Every completed stage is persisted, so a run that dies partway offers
+**Resume** rather than making you pay for the earlier stages again.
 
 **Search runs in two passes.** Asking for a schema and a web search in the same call lets the
 model satisfy the schema immediately with an empty array and never search. A free-form pass

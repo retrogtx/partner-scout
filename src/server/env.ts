@@ -1,3 +1,5 @@
+import { env as workerEnv } from 'cloudflare:workers'
+
 type ScoutEnv = {
   APP_ID?: string
   WHOP_API_ORIGIN?: string
@@ -11,9 +13,8 @@ type ScoutEnv = {
   UPSTASH_REDIS_REST_TOKEN?: string
 }
 
-// Nitro exposes Vercel's environment on process.env, and `vercel dev` /
-// `.dev.vars` populate the same place locally.
-const env = process.env as ScoutEnv
+// Workers bindings: `wrangler secret put` in production, `.dev.vars` locally.
+const env = workerEnv as ScoutEnv
 
 export function whopApiOrigin(): string {
   return env.WHOP_API_ORIGIN ?? 'https://api.whop.com'
@@ -57,7 +58,7 @@ export function aiCredentials(): { provider: AiProviderName; apiKey: string } {
   if (gateway) return { provider: 'gateway', apiKey: gateway }
 
   throw new Error(
-    'No AI gateway key. Set OPENROUTER_API_KEY or AI_GATEWAY_API_KEY (.env locally, project env vars on Vercel).',
+    'No AI gateway key. Set OPENROUTER_API_KEY or AI_GATEWAY_API_KEY (.dev.vars locally, wrangler secret put in production).',
   )
 }
 
