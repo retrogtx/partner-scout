@@ -118,18 +118,7 @@ export type Brief = {
   pitch: Pitch
 }
 
-/**
- * Research is three stages, not one, because Vercel's Hobby plan kills a
- * function at 60s and a search + structure + pitch chain runs well past that.
- * Each stage is now a single model call.
- */
-export type ReportStage =
-  | 'sourcing'
-  | 'ranking'
-  | 'researching'
-  | 'structuring'
-  | 'pitching'
-  | 'done'
+export type ReportStage = 'sourcing' | 'ranking' | 'researching' | 'done'
 
 export type Report = {
   date: string
@@ -139,13 +128,11 @@ export type Report = {
   shortlist: Array<ShortlistItem>
   briefs: Array<Brief>
   log: Array<string>
-  /** Work in flight for the target at index `briefs.length`. */
-  pending?: { notes?: string; research?: Research }
 }
 
 export const reportSchema: z.ZodType<Report> = z.object({
   date: z.string(),
-  stage: z.enum(['sourcing', 'ranking', 'researching', 'structuring', 'pitching', 'done']),
+  stage: z.enum(['sourcing', 'ranking', 'researching', 'done']),
   candidates: z.array(candidateSchema),
   comps: z.array(whopCompSchema),
   shortlist: z.array(shortlistItemSchema),
@@ -157,7 +144,6 @@ export const reportSchema: z.ZodType<Report> = z.object({
     }),
   ),
   log: z.array(z.string()),
-  pending: z.object({ notes: z.string().optional(), research: researchSchema.optional() }).optional(),
 })
 
 export function emptyReport(date: string): Report {
@@ -172,10 +158,6 @@ export function stageLabel(report: Report): string {
       return 'Scoring candidates for Whop fit'
     case 'researching':
       return `Researching ${report.briefs.length + 1} of ${report.shortlist.length}`
-    case 'structuring':
-      return `Structuring findings ${report.briefs.length + 1} of ${report.shortlist.length}`
-    case 'pitching':
-      return `Writing pitch ${report.briefs.length + 1} of ${report.shortlist.length}`
     case 'done':
       return 'Report ready'
   }

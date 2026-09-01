@@ -26,6 +26,14 @@ export type Brain = {
   searchModel: LanguageModel
   /** Tools the research model may call. Empty on OpenRouter — search is a provider plugin. */
   searchTools: ToolSet
+  /**
+   * True when the provider injects search results into the prompt itself rather
+   * than exposing a tool the model must choose to call. That distinction decides
+   * whether searching and returning a schema can happen in one request: with
+   * provider-side search it can, because there is no tool loop for the schema to
+   * short-circuit.
+   */
+  searchIsProviderSide: boolean
   /** Plain model for synthesis and structured output, no search. */
   model: LanguageModel
 }
@@ -43,8 +51,11 @@ export function brain(): Brain {
     cached = {
       // OpenRouter runs the search itself and folds results into the prompt,
       // so the model needs no tool to reach the web.
-      searchModel: openrouter(modelId, { plugins: [{ id: 'web', max_results: 8 }] }),
+      searchModel: openrouter(modelId, {
+        plugins: [{ id: 'web', max_results: 8 }, { id: 'response-healing' }],
+      }),
       searchTools: {},
+      searchIsProviderSide: true,
       model: openrouter(modelId, { plugins: [{ id: 'response-healing' }] }),
     }
     return cached
@@ -55,6 +66,7 @@ export function brain(): Brain {
     searchModel: gateway(modelId),
     // Executed by the Gateway itself, so it works regardless of the model.
     searchTools: { web_search: gateway.tools.perplexitySearch({ maxResults: 8 }) },
+    searchIsProviderSide: false,
     model: gateway(modelId),
   }
   return cached

@@ -56,14 +56,10 @@ const STAGES: Array<{ id: ReportStage; label: string }> = [
   { id: 'done', label: 'Brief' },
 ]
 
-// researching / structuring / pitching are three requests but one idea, so the
-// rail shows them as a single step rather than leaking the split.
 const STEP_INDEX: Record<ReportStage, number> = {
   sourcing: 0,
   ranking: 1,
   researching: 2,
-  structuring: 2,
-  pitching: 2,
   done: 3,
 }
 

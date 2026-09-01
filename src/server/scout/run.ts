@@ -1,6 +1,6 @@
 import { fetchReferredBusinesses, fetchWhopTrending } from '../whop'
 import { rankCandidates } from './rank'
-import { buildPitch, investigateTarget, structureResearch } from './research'
+import { briefTarget } from './research'
 import { fetchProductHunt, sweepSocial } from './sources'
 import type { Report } from './types'
 
@@ -79,25 +79,12 @@ export async function advance(report: Report): Promise<Report> {
       const target = report.shortlist[report.briefs.length]
       if (!target) return { ...report, stage: 'done', log }
 
-      const notes = await investigateTarget(target, report.date)
-      return { ...report, stage: 'structuring', pending: { notes }, log }
-    }
+      const { research, pitch } = await briefTarget({
+        target,
+        today: report.date,
+        comps: report.comps,
+      })
 
-    case 'structuring': {
-      const target = report.shortlist[report.briefs.length]
-      const notes = report.pending?.notes
-      if (!target || !notes) return { ...report, stage: 'researching', pending: undefined, log }
-
-      const research = await structureResearch(notes, target)
-      return { ...report, stage: 'pitching', pending: { research }, log }
-    }
-
-    case 'pitching': {
-      const target = report.shortlist[report.briefs.length]
-      const research = report.pending?.research
-      if (!target || !research) return { ...report, stage: 'researching', pending: undefined, log }
-
-      const pitch = await buildPitch({ target, research, comps: report.comps })
       const briefs = [...report.briefs, { candidate: target, research, pitch }]
       log.push(`Researched ${target.name} (${research.sources.length} sources).`)
 
@@ -105,7 +92,6 @@ export async function advance(report: Report): Promise<Report> {
         ...report,
         stage: briefs.length >= report.shortlist.length ? 'done' : 'researching',
         briefs,
-        pending: undefined,
         log,
       }
     }

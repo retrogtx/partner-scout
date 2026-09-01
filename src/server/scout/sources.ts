@@ -67,10 +67,13 @@ const socialSweepSchema = z.object({ candidates: z.array(candidateSchema.omit({ 
  * a free-form pass first makes searching the only way to produce anything.
  */
 export async function sweepSocial(today: string, limit = 10): Promise<Array<Candidate>> {
-  const { searchModel, searchTools, model } = brain()
+  const { searchModel, searchTools, searchIsProviderSide, model } = brain()
 
   const sweep = await generateText({
     model: searchModel,
+    // With provider-side search there is no tool loop to short-circuit, so the
+    // schema can be satisfied in the same call — one request instead of two.
+    ...(searchIsProviderSide ? { output: Output.object({ schema: socialSweepSchema }) } : {}),
     tools: searchTools,
     stopWhen: isStepCount(10),
     system: [
@@ -94,6 +97,13 @@ export async function sweepSocial(today: string, limit = 10): Promise<Array<Cand
     ].join('\n'),
   })
 
+  const asSocial = (list: Array<Omit<Candidate, 'source'>>): Array<Candidate> =>
+    list.slice(0, limit).map((candidate) => ({ ...candidate, source: 'social' }))
+
+  if (searchIsProviderSide) return asSocial(sweep.output.candidates)
+
+  // Tool-based search: the model can satisfy a schema without ever calling the
+  // tool, so the search has to run free-form first and be structured after.
   const findings = findingsFrom(sweep)
   if (!findings) return []
 
@@ -105,5 +115,5 @@ export async function sweepSocial(today: string, limit = 10): Promise<Array<Cand
     prompt: ['## Findings', findings].join('\n'),
   })
 
-  return output.candidates.slice(0, limit).map((candidate) => ({ ...candidate, source: 'social' }))
+  return asSocial(output.candidates)
 }
