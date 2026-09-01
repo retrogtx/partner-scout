@@ -95,8 +95,13 @@ export const pitchSchema = z.object({
   headline: z.string().describe('One line: the reason this business belongs on Whop.'),
   whyWhop: z.array(z.string()).describe('Concrete, specific-to-them reasons. No generic benefits.'),
   comps: z
-    .array(z.string())
-    .describe('Names of Whop products from the supplied comp set that resemble this business.'),
+    .array(
+      z.object({
+        product: z.string().describe('Just the product name. No markdown, no URL, no description.'),
+        why: z.string().describe('One line on what the resemblance is and what it proves.'),
+      }),
+    )
+    .describe('Whop products from the supplied comp set that genuinely resemble this business.'),
   frictionToday: z.array(z.string()).describe('What their current stack costs them.'),
   objections: z.array(z.object({ objection: z.string(), response: z.string() })),
   outreach: z.object({

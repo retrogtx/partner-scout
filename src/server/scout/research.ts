@@ -52,6 +52,7 @@ const PITCH_TASK = [
   '- whyWhop: reasons tied to their actual stack and pricing. "Whop has communities" is useless;',
   '  "you are paying Gumroad 10% and running the community in a separate free Discord" is the argument.',
   '- comps: pick from the supplied list only, and only where the resemblance is real.',
+  '  `product` is the bare name — no markdown links, no URL, no prose. Put the reasoning in `why`.',
   '- frictionToday: what their current setup costs them, in fees, tooling, or lost renewals.',
   '- objections: the three they will actually raise, answered honestly. Do not straw-man.',
   '- outreach: the message the partner sends. Reference the specific thing that happened today.',

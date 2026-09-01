@@ -231,11 +231,14 @@ export function BriefCard({ brief, index }: { brief: Brief; index: number }) {
 
         {pitch.comps.length ? (
           <Section title="comparable products on whop">
-            <div className="flex flex-wrap gap-1.5">
+            <div className="flex flex-col gap-2">
               {pitch.comps.map((comp) => (
-                <Chip key={comp} tone="accent">
-                  {comp}
-                </Chip>
+                <div key={comp.product} className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                  <Chip tone="accent">{comp.product}</Chip>
+                  <Text size="2" color="gray" className="leading-relaxed">
+                    {comp.why}
+                  </Text>
+                </div>
               ))}
             </div>
           </Section>
