@@ -56,11 +56,20 @@ const STAGES: Array<{ id: ReportStage; label: string }> = [
   { id: 'done', label: 'Brief' },
 ]
 
-const ORDER: Array<ReportStage> = ['sourcing', 'ranking', 'researching', 'done']
+// researching / structuring / pitching are three requests but one idea, so the
+// rail shows them as a single step rather than leaking the split.
+const STEP_INDEX: Record<ReportStage, number> = {
+  sourcing: 0,
+  ranking: 1,
+  researching: 2,
+  structuring: 2,
+  pitching: 2,
+  done: 3,
+}
 
 /** Horizontal stepper. Each step is past / current / upcoming — no percentages. */
 export function StageRail({ report, running }: { report: Report; running: boolean }) {
-  const currentIndex = ORDER.indexOf(report.stage)
+  const currentIndex = STEP_INDEX[report.stage]
 
   return (
     <div className="flex items-center gap-1.5">

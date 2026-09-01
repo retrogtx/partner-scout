@@ -13,9 +13,9 @@ import {
 
 /**
  * Search-backed pass. Runs free-form so the model can chase links without also
- * fighting a schema; the structuring happens in `structure` below.
+ * fighting a schema; the structuring happens in `structureResearch` below.
  */
-async function investigate(target: ShortlistItem, today: string): Promise<string> {
+export async function investigateTarget(target: ShortlistItem, today: string): Promise<string> {
   const { searchModel, searchTools } = brain()
 
   const result = await generateText({
@@ -54,7 +54,7 @@ async function investigate(target: ShortlistItem, today: string): Promise<string
   return findingsFrom(result)
 }
 
-async function structure(notes: string, target: ShortlistItem): Promise<Research> {
+export async function structureResearch(notes: string, target: ShortlistItem): Promise<Research> {
   const { model } = brain()
 
   const { output } = await generateText({
@@ -66,14 +66,6 @@ async function structure(notes: string, target: ShortlistItem): Promise<Research
   })
 
   return output
-}
-
-export async function researchTarget(
-  target: ShortlistItem,
-  today: string,
-): Promise<{ research: Research; notes: string }> {
-  const notes = await investigate(target, today)
-  return { research: await structure(notes, target), notes }
 }
 
 function compLine(comp: WhopComp): string {

@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { BriefCard } from './brief-card'
 import { StageRail, TopBar } from './shell'
+import { errorMessage } from '#/lib/error-message'
 import { getReport, resetReport, stepScout } from '#/server/functions'
 import { stageLabel, type Report } from '#/server/scout/types'
 
@@ -17,7 +18,7 @@ export function ScoutPage() {
     cancelled.current = false
     getReport({ data: {} })
       .then(setReport)
-      .catch((cause: unknown) => setError(cause instanceof Error ? cause.message : String(cause)))
+      .catch((cause: unknown) => setError(errorMessage(cause)))
     return () => {
       cancelled.current = true
     }
@@ -35,7 +36,8 @@ export function ScoutPage() {
         setReport(current)
       }
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause))
+      console.error('[scout]', cause)
+      setError(errorMessage(cause))
     } finally {
       setRunning(false)
     }
@@ -48,7 +50,8 @@ export function ScoutPage() {
       setReport(fresh)
       await run(fresh)
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause))
+      console.error('[scout]', cause)
+      setError(errorMessage(cause))
     }
   }, [run])
 

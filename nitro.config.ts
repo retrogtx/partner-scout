@@ -1,12 +1,12 @@
 import { defineConfig } from 'nitro'
 
-// A research stage is minutes of model time, far past Vercel's default
-// function timeout. The step machine keeps each request to one stage, but that
-// stage still needs real headroom.
+// Vercel's Hobby plan hard-caps a function at 60s, so asking for more is
+// silently unhonoured. The scout is split so no single stage needs longer;
+// raise this to 300 on Pro if you want fewer, larger requests.
 export default defineConfig({
   vercel: {
     functions: {
-      maxDuration: 300,
+      maxDuration: 60,
     },
   },
 })

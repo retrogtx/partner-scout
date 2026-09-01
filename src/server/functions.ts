@@ -30,9 +30,17 @@ export const stepScout = createServerFn({ method: 'POST' })
   .validator(z.object({ report: reportSchema }))
   .handler(async ({ data }): Promise<Report> => {
     const { userId } = await viewerOrAnonymous()
-    const next = await advance(data.report)
-    await saveReport(userId, next)
-    return next
+    try {
+      const next = await advance(data.report)
+      await saveReport(userId, next)
+      return next
+    } catch (cause) {
+      // Whatever crossed the RPC boundary before this was unreadable on the
+      // client. Log the real thing, then rethrow a message worth showing.
+      console.error(`[scout] stage "${data.report.stage}" failed`, cause)
+      const detail = cause instanceof Error ? cause.message : JSON.stringify(cause)?.slice(0, 300)
+      throw new Error(`Stage "${data.report.stage}" failed: ${detail ?? 'unknown error'}`)
+    }
   })
 
 export const resetReport = createServerFn({ method: 'POST' })
