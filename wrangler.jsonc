@@ -4,10 +4,8 @@
   "compatibility_date": "2025-12-10",
   "compatibility_flags": ["nodejs_compat"],
   "main": "@tanstack/react-start/server-entry",
-  "observability": { "enabled": true },
-  // Only CPU counts here, and this workload is almost entirely waiting on
-  // model APIs — but the default 30s ceiling is worth raising anyway so a
-  // slow JSON parse on a large report can never trip it. Paid plan only;
-  // delete this block on the free plan.
-  "limits": { "cpu_ms": 300000 }
+  "observability": { "enabled": true }
+  // No "limits" block: CPU limits are a paid-plan feature and the API rejects
+  // the deploy outright on Free. Free allows 10ms CPU per request, which is
+  // only workable because this workload is nearly all fetch() wait, not compute.
 }

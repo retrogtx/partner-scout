@@ -119,10 +119,43 @@ export async function buildPitch(args: {
       '- frictionToday: what their current setup costs them, in fees, tooling, or lost renewals.',
       '- objections: the three they will actually raise, answered honestly. Do not straw-man.',
       '- outreach: the message the partner sends. Reference the specific thing that happened today.',
-      '  Under 150 words, no placeholders, no "I hope this finds you well".',
+      '  Under 150 words, no "I hope this finds you well".',
+      '  Do not sign off. You do not know the sender\'s name, so end on the last real sentence —',
+      '  no "Best,", no "[Your Name]", and never a square-bracket placeholder anywhere in the body.',
       '- referralPrefill: exactly what goes into the Whop referral form. annualRevenue must match the research.',
     ].join('\n'),
   })
 
-  return output
+  return { ...output, outreach: { ...output.outreach, body: stripPlaceholders(output.outreach.body) } }
+}
+
+/**
+ * Models sign off with "Best, [Partner Name]" however firmly you tell them not
+ * to, and a partner pasting that into an email is the worst failure this tool
+ * has. Drop any line still carrying a bracket placeholder, plus the sign-off
+ * left dangling above it.
+ */
+const SIGNOFF = /(best|thanks|cheers|regards|sincerely)/i
+
+function stripPlaceholders(body: string): string {
+  // Remove the placeholders themselves first. Dropping whole *lines* would
+  // delete the message when the placeholder shares a line with real content.
+  const withoutPlaceholders = body.replace(/\s*\[[^\]]*\]/g, '')
+
+  // Then clear the sign-off the placeholder was attached to, whether it is left
+  // on its own line or trailing the final sentence.
+  const lines = withoutPlaceholders.split('\n')
+  while (lines.length) {
+    const last = lines[lines.length - 1]!.trim()
+    if (!last || new RegExp(`^${SIGNOFF.source}[,!.]?$`, 'i').test(last)) {
+      lines.pop()
+      continue
+    }
+    break
+  }
+
+  return lines
+    .join('\n')
+    .replace(new RegExp(`\\s*\\b${SIGNOFF.source}\\s*[,!.]?\\s*$`, 'i'), '')
+    .trim()
 }
