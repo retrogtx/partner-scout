@@ -1,5 +1,3 @@
-import { env as workerEnv } from 'cloudflare:workers'
-
 type ScoutEnv = {
   APP_ID?: string
   WHOP_API_ORIGIN?: string
@@ -13,8 +11,10 @@ type ScoutEnv = {
   UPSTASH_REDIS_REST_TOKEN?: string
 }
 
-// Workers bindings: `wrangler secret put` in production, `.dev.vars` locally.
-const env = workerEnv as ScoutEnv
+// `process.env` is populated on both targets: Workers fills it from bindings
+// under nodejs_compat (verified), and Vercel/Nitro fills it natively. That is
+// what lets one build serve Cloudflare and Vercel without a runtime shim.
+const env = process.env as unknown as ScoutEnv
 
 export function whopApiOrigin(): string {
   return env.WHOP_API_ORIGIN ?? 'https://api.whop.com'
