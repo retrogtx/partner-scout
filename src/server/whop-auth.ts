@@ -34,12 +34,22 @@ export async function verifyViewer(): Promise<Viewer> {
   return { userId: payload.sub }
 }
 
-/** Dev convenience: local runs have no iframe, so fall back to an anonymous viewer. */
+/**
+ * Whop only sends `x-whop-user-token` when the app is embedded in its iframe,
+ * so a bare deployment has no way to identify anyone.
+ *
+ * The gate is `APP_ID`: while it is unset the deployment is not yet claimed by
+ * a Whop app, and we fall back to a shared anonymous viewer so the URL is
+ * usable standalone. Setting `APP_ID` — which you must do to wire it into Whop
+ * anyway — switches this to strict verification. Until then the deployment is
+ * open to anyone with the link and will spend gateway credits on their behalf.
+ */
 export async function viewerOrAnonymous(): Promise<Viewer> {
   try {
     return await verifyViewer()
   } catch (error) {
     if (import.meta.env.DEV) return { userId: 'user_local_dev' }
+    if (!appId()) return { userId: 'user_unclaimed' }
     throw error
   }
 }

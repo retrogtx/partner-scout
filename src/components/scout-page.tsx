@@ -54,8 +54,17 @@ export function ScoutPage() {
 
   if (!report) {
     return (
-      <div className="grid min-h-screen place-items-center">
-        <Spinner size="3" />
+      <div className="grid min-h-screen place-items-center p-5">
+        {/* A failed initial load used to leave this spinning forever, because
+            `report` stays null and the error was never given a surface. */}
+        {error ? (
+          <Callout.Root color="danger" className="max-w-xl">
+            <Callout.Title>Could not load today’s report</Callout.Title>
+            <Callout.Description>{error}</Callout.Description>
+          </Callout.Root>
+        ) : (
+          <Spinner size="3" />
+        )}
       </div>
     )
   }
