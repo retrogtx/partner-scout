@@ -51,8 +51,9 @@ If both keys are set, OpenRouter wins; `SCOUT_AI_PROVIDER=gateway` forces the ot
 | `OPENROUTER_API_KEY` / `AI_GATEWAY_API_KEY` | one of them | See above. |
 | `SCOUT_AI_PROVIDER` | no | `openrouter` \| `gateway`. Only needed when both keys are set. |
 | `SCOUT_MODEL` | no | Defaults to `anthropic/claude-opus-5`. |
-| `WHOP_API_KEY` | for Discover | Whop dashboard → Developer → Apps → *Set up your local environment*. Without it the Discover comps step is skipped. |
-| `APP_ID` | in production | `app_…`. Checked against the iframe token's audience. |
+| `WHOP_API_KEY` | for Discover | Must be an **App** API key, not a Company one — `public-graphql` rejects company keys outright (`You must provide a valid App API Key`). Get it from a specific app: dashboard → Developer → Apps → your app → *Get started → Set up your local environment*. |
+| `APP_ID` | for Whop | `app_…`. Verifies the iframe token's audience. Does **not** control whether auth is required — see `ALLOW_ANONYMOUS`. |
+| `ALLOW_ANONYMOUS` | no | `1` lets requests with **no** token through as an anonymous viewer, which is what makes a bare deployment usable outside Whop. Off by default. A presented token is always verified either way. |
 | `UPSTASH_REDIS_REST_URL` / `_TOKEN` | for history | Without these the store is in-memory, which on Workers is per-isolate, so no history survives. |
 
 ### Model choice matters more than usual
@@ -64,6 +65,10 @@ both structured output *and* search — usable for iterating on plumbing, not fo
 acts on. Put a frontier model behind `SCOUT_MODEL` before trusting the output.
 
 Note the search plugin bills separately (~$0.007/call) even on a free-tier key.
+
+**The free tier also has a daily request cap** (~50/day with no credits), and a full run is 8–11
+model calls — so a handful of runs exhausts it and every stage then fails with
+`Rate limit exceeded: free-models-per-day`. Adding $10 of credit raises it to 1000/day.
 
 ## Deploying
 
@@ -158,10 +163,12 @@ src/
 
 ## Known gaps
 
-- **Whop Discover comps are unverified.** Every run so far has been local without a
-  `WHOP_API_KEY`, so the comps array has always been empty and that code path hasn't executed
-  successfully end to end.
+- **Referral dedupe is inert** until the app is granted the `partner:basic:read` scope
+  (developer dashboard → your app → Permissions). Without it `GET /partners/businesses` returns
+  `403 not authorized for the partner:basic:read scope`, the scout can't see what you've already
+  referred, and it may resurface a business you've referred before. Fails soft into the run log.
 - **Weak models confabulate into research gaps.** A target that returns one source still gets a
   confident-sounding pitch. Sources-per-brief is shown so you can spot it, but it isn't gated.
-- **No dedupe against previously-referred businesses in code** — it's instructed in the ranking
-  prompt and depends on the Partners API returning results.
+- **The social sweep is unreliable at the free model tier** — it returns 7–8 candidates on a good
+  run and 0 on a bad one, with no error. When it's empty, Product Hunt carries the run, which
+  skews toward SaaS and away from Whop's creator-economy ICP.
