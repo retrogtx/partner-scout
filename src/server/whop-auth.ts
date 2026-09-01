@@ -1,7 +1,7 @@
 import { createRemoteJWKSet, jwtVerify } from 'jose'
 import { getRequest } from '@tanstack/react-start/server'
 
-import { appId, whopApiOrigin } from './env'
+import { allowAnonymous, appId, whopApiOrigin } from './env'
 
 const ISSUER = 'urn:whopcom:exp-proxy'
 
@@ -38,18 +38,19 @@ export async function verifyViewer(): Promise<Viewer> {
  * Whop only sends `x-whop-user-token` when the app is embedded in its iframe,
  * so a bare deployment has no way to identify anyone.
  *
- * The gate is `APP_ID`: while it is unset the deployment is not yet claimed by
- * a Whop app, and we fall back to a shared anonymous viewer so the URL is
- * usable standalone. Setting `APP_ID` — which you must do to wire it into Whop
- * anyway — switches this to strict verification. Until then the deployment is
- * open to anyone with the link and will spend gateway credits on their behalf.
+ * Two separate questions, deliberately not conflated:
+ *   - Is a presented token real? Always checked. A bad token is always rejected.
+ *   - Is an *absent* token acceptable? Only when `ALLOW_ANONYMOUS` says so.
+ *
+ * An earlier version keyed both off `APP_ID`, which meant wiring the app into
+ * Whop and closing public access were the same switch — and worse, an invalid
+ * token silently downgraded to anonymous instead of being refused.
  */
 export async function viewerOrAnonymous(): Promise<Viewer> {
-  try {
-    return await verifyViewer()
-  } catch (error) {
-    if (import.meta.env.DEV) return { userId: 'user_local_dev' }
-    if (!appId()) return { userId: 'user_unclaimed' }
-    throw error
-  }
+  if (getRequest().headers.get('x-whop-user-token')) return verifyViewer()
+  if (import.meta.env.DEV) return { userId: 'user_local_dev' }
+  if (allowAnonymous()) return { userId: 'user_anonymous' }
+  throw new Error(
+    'No Whop user token on this request. Open the app from inside Whop, or set ALLOW_ANONYMOUS=1 to permit public use.',
+  )
 }

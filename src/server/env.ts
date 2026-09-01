@@ -6,6 +6,7 @@ type ScoutEnv = {
   AI_GATEWAY_API_KEY?: string
   SCOUT_AI_PROVIDER?: string
   SCOUT_MODEL?: string
+  ALLOW_ANONYMOUS?: string
   PRODUCT_HUNT_TOKEN?: string
   UPSTASH_REDIS_REST_URL?: string
   UPSTASH_REDIS_REST_TOKEN?: string
@@ -64,6 +65,16 @@ export function aiCredentials(): { provider: AiProviderName; apiKey: string } {
 
 export function scoutModelId(): string {
   return env.SCOUT_MODEL ?? 'anthropic/claude-opus-5'
+}
+
+/**
+ * Whether a request with no Whop user token may proceed as an anonymous
+ * viewer. Off by default: a deployment reachable without a token can be used
+ * by anyone who finds the URL, at your gateway's expense.
+ */
+export function allowAnonymous(): boolean {
+  const value = env.ALLOW_ANONYMOUS?.toLowerCase()
+  return value === '1' || value === 'true'
 }
 
 export function productHuntToken(): string | undefined {
