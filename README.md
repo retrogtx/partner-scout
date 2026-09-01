@@ -74,8 +74,14 @@ vercel            # preview
 vercel --prod     # production
 ```
 
-Set the environment variables above in the Vercel project. Long-running stages need headroom —
-`vercel.json` sets `maxDuration` to 300s, which requires a plan that allows it.
+Set the environment variables above in the Vercel project. Long-running stages need headroom, so
+`nitro.config.ts` sets `maxDuration` to 300s — note this goes in the Nitro config, not
+`vercel.json`, whose `functions` patterns only match the `api/` directory. 300s requires a plan
+that allows it; on Hobby the research stage will time out.
+
+**Deployment Protection must be off** for the Whop iframe to load the app — an SSO redirect
+can't render inside Whop. That is safe here: every server function calls `verifyViewer()`, which
+requires a Whop-signed JWT in production, so the public surface is an empty shell.
 
 ### Wiring it into Whop
 
